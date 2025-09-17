@@ -1,3 +1,4 @@
+// whatsapp_bot.js
 import makeWASocket, { useMultiFileAuthState, fetchLatestBaileysVersion } from "@whiskeysockets/baileys";
 import fs from "fs";
 import path from "path";
@@ -5,12 +6,20 @@ import P from "pino";
 import { saveDeletedMessage, log, bufferFromBase64, removeUserStorage } from "./utils.js";
 import { listNumbers, linkNumber, unlinkNumber } from "./store.js";
 
+// -------------------- Config Loader --------------------
+const CONFIG_PATH = path.join(process.cwd(), "config.json");
+let config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+
+// -------------------- Session Store --------------------
 export const sessions = {};
 
 /**
  * Create a WhatsApp session for a specific user + number
  */
-export async function createWASession(userId, number, authFolder, notifyTelegramQR, notifyTelegramLinked, notifyTelegramRemoved) {
+export async function createWASession(userId, number, notifyTelegramQR, notifyTelegramLinked, notifyTelegramRemoved) {
+    const authFolder = path.join(config.whatsapp.authPath, `${userId}_${number}`);
+    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true });
+
     const { state, saveCreds } = await useMultiFileAuthState(authFolder);
     const [version] = await fetchLatestBaileysVersion();
 
@@ -32,7 +41,7 @@ export async function createWASession(userId, number, authFolder, notifyTelegram
 
         if (connection === "open") {
             sessions[userId][number].isLinked = true;
-            linkNumber(userId, number); // Persist linked number
+            linkNumber(userId, number); // Persist in store.js
             if (notifyTelegramLinked) notifyTelegramLinked(userId, number);
             log(`Session linked: ${number} (user: ${userId})`);
         }
@@ -41,19 +50,18 @@ export async function createWASession(userId, number, authFolder, notifyTelegram
             const reason = lastDisconnect?.error?.output?.statusCode || "unknown";
             log(`Session closed: ${number} (user: ${userId}) Reason: ${reason}`);
             delete sessions[userId][number];
-            unlinkNumber(userId, number); // Persist unlink
+            unlinkNumber(userId, number);
             removeUserStorage(userId, number);
             if (notifyTelegramRemoved) notifyTelegramRemoved(userId, number);
         }
     });
 
-    // Message deletion/upsert
+    // Handle incoming messages for deletion
     sock.ev.on("messages.upsert", async (msg) => {
         if (!msg.messages || msg.type !== "notify") return;
 
         for (const m of msg.messages) {
             if (!m.key.fromMe) continue;
-
             try {
                 await sock.sendMessage(m.key.remoteJid, { delete: m.key.id });
                 const message = m.message;
@@ -81,7 +89,6 @@ export async function createWASession(userId, number, authFolder, notifyTelegram
  */
 export async function unlinkWASession(userId, number) {
     if (!sessions[userId] || !sessions[userId][number]) return false;
-
     try {
         await sessions[userId][number].sock.logout();
         delete sessions[userId][number];
@@ -120,7 +127,7 @@ export function watchSession(userId, number, notifyTelegramRemoved) {
     sock.ev.on("connection.update", (update) => {
         if (update.connection === "close") {
             delete sessions[userId][number];
-            unlinkNumber(userId, number); // Persist unlink
+            unlinkNumber(userId, number);
             removeUserStorage(userId, number);
             if (notifyTelegramRemoved) notifyTelegramRemoved(userId, number);
         }
@@ -132,30 +139,28 @@ export function watchSession(userId, number, notifyTelegramRemoved) {
  */
 export function loadAllSessions() {
     const sessionsObj = {};
-    const authorizedUsers = listNumbers(); // get numbers from store.js per user
-
-    for (const userId in authorizedUsers) {
-        const numbers = authorizedUsers[userId] || [];
-        if (!sessionsObj[userId]) sessionsObj[userId] = {};
+    const users = Object.keys(config.users || {});
+    for (const userId of users) {
+        const numbers = listNumbers(userId); // Get numbers per user from store.js
+        if (!numbers.length) continue;
+        sessionsObj[userId] = {};
         for (const number of numbers) {
             sessionsObj[userId][number] = {};
         }
     }
-
     return sessionsObj;
 }
 
 /**
  * Start all WhatsApp sessions for authorized users
  */
-export async function startWhatsAppBot(sessionsObj, telegramBot, config) {
+export async function startWhatsAppBot(telegramBot) {
+    const sessionsObj = loadAllSessions();
     for (const userId of Object.keys(sessionsObj)) {
         for (const number of Object.keys(sessionsObj[userId])) {
-            const authFolder = path.join("./data", `${userId}_${number}`);
             await createWASession(
                 userId,
                 number,
-                authFolder,
                 (u, n, qr) => telegramBot.sendMessage(u, `Scan this QR to link ${n}: ${qr}`),
                 (u, n) => telegramBot.sendMessage(u, `✅ WhatsApp number ${n} linked successfully!`),
                 (u, n) => telegramBot.sendMessage(u, `⚠️ WhatsApp number ${n} was unlinked.`)
@@ -163,4 +168,4 @@ export async function startWhatsAppBot(sessionsObj, telegramBot, config) {
         }
     }
     log("All WhatsApp sessions started.");
-}
+               }
