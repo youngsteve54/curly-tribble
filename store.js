@@ -2,12 +2,16 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import config from "./config.js";
 import { generatePasskey, ensureDir } from "./utils.js";
 
+// -------------------- Config JSON Loader --------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const CONFIG_PATH = path.join(__dirname, "config.json");
+const config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+
+// -------------------- Data Paths --------------------
 const STORE_PATH = path.join(__dirname, "data");
 const USERS_FILE = path.join(STORE_PATH, "users.json");
 
@@ -70,6 +74,7 @@ export function removeUser(userId) {
 export function listAuthorized() {
     return Object.keys(loadUsers().authorized);
 }
+
 export function listPending() {
     return Object.keys(loadUsers().pending);
 }
@@ -103,4 +108,4 @@ export function unlinkNumber(userId, number) {
 export function listNumbers(userId) {
     const users = loadUsers();
     return users.authorized[userId]?.linkedNumbers || [];
-}
+        }
