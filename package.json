@@ -1,0 +1,18 @@
+{
+  "name": "double-mighty-bot",
+  "version": "1.0.0",
+  "description": "Multi-user WhatsApp & Telegram bot with admin control, passkey system, deleted message storage",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.19",
+    "node-telegram-bot-api": "^0.66.0",
+    "lowdb": "^7.0.1",
+    "pino": "^9.0.0",
+    "qrcode-terminal": "^0.12.0",
+    "nanoid": "^5.0.0"
+  }
+}

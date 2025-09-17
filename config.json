@@ -1,0 +1,34 @@
+{
+  "admin": {
+    "id": 7702386503
+  },
+  "telegram": {
+    "token": "",
+    "polling": true
+  },
+  "whatsapp": {
+    "sessionsPath": "./sessions",
+    "messageStoragePath": "./superHouse",
+    "autoDelete": true,
+    "saveDeletedMessages": true
+  },
+  "botSettings": {
+    "passkeyLength": 8,
+    "paginationLimit": 10,
+    "maxConcurrentChats": 20,
+    "broadcastAllowed": true
+  },
+  "logs": {
+    "enable": true,
+    "path": "./logs"
+  },
+  "limits": {
+    "maxLinkedNumbersPerUser": 10,
+    "maxMessageSizeMB": 10
+  },
+  "misc": {
+    "qrScanTimeoutSeconds": 120,
+    "pairingCodeTimeoutSeconds": 180,
+    "botVersion": "1.0.0"
+  }
+}
