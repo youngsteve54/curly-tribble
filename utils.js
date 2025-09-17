@@ -2,7 +2,14 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import config from "./config.js";
+
+// -------------------- Config JSON Loader --------------------
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const CONFIG_PATH = path.join(__dirname, "config.json");
+const config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
 
 // ------------------ Directory Helpers ------------------
 export function ensureDir(dirPath) {
@@ -36,7 +43,15 @@ export function saveMedia(userId, number, fileName, buffer) {
 // Save deleted WhatsApp message (text or media buffer)
 export function saveDeletedMessage(userId, number, content, type = "text") {
     const timestamp = Date.now();
-    const ext = type === "text" ? ".txt" : type === "image" ? ".jpg" : type === "video" ? ".mp4" : type === "voice" ? ".mp3" : ".bin";
+    const ext = type === "text"
+        ? ".txt"
+        : type === "image"
+        ? ".jpg"
+        : type === "video"
+        ? ".mp4"
+        : type === "voice"
+        ? ".mp3"
+        : ".bin";
     const fileName = `${timestamp}${ext}`;
     if (Buffer.isBuffer(content)) {
         return saveMedia(userId, number, fileName, content);
