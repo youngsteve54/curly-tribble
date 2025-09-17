@@ -1,9 +1,14 @@
+// telegram_bot.js
 import TelegramBot from "node-telegram-bot-api";
 import fs from "fs";
 import path from "path";
 import { linkWhatsAppNumber, unlinkWhatsAppNumber, getDeletedMessages } from "./whatsapp_bot.js";
+import { fileURLToPath } from "url";
 
-const CONFIG_PATH = path.join(process.cwd(), "config.json");
+// -------------------- Config JSON Loader --------------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const CONFIG_PATH = path.join(__dirname, "config.json");
 let config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
 
 // Ensure users object exists
@@ -23,13 +28,18 @@ function generatePasskey() {
     return Math.random().toString(36).slice(2, 2 + length).toUpperCase();
 }
 
-const LOCK_FILE = path.join(process.cwd(), ".bot_lock");
+const LOCK_FILE = path.join(__dirname, ".bot_lock");
 
+// ------------------ Bot Initialization ------------------
 async function initBot(token) {
-    // ---------------- Single Instance Enforcement ----------------
+    // Single Instance Enforcement
     if (fs.existsSync(LOCK_FILE)) {
         const oldPid = parseInt(fs.readFileSync(LOCK_FILE, "utf-8"));
-        try { process.kill(oldPid, 0); process.kill(oldPid); console.log("🛑 Stopped previous bot instance."); } catch {}
+        try { 
+            process.kill(oldPid, 0); 
+            process.kill(oldPid); 
+            console.log("🛑 Stopped previous bot instance."); 
+        } catch {}
         fs.unlinkSync(LOCK_FILE);
     }
     fs.writeFileSync(LOCK_FILE, process.pid.toString());
@@ -49,7 +59,7 @@ async function initBot(token) {
     return bot;
 }
 
-// ------------------ User Authorization ------------------
+// ------------------ User Commands ------------------
 async function handleStart(bot, msg) {
     const chatId = msg.chat.id;
     const userId = msg.from.id.toString();
@@ -127,7 +137,7 @@ async function handleView(bot, msg) {
     });
 }
 
-// ------------------ Admin & User Callbacks ------------------
+// ------------------ Callback Queries ------------------
 async function handleAdminCallback(bot, query) {
     const data = query.data;
     const fromId = query.from.id.toString();
@@ -160,7 +170,7 @@ async function handleUserCallback(bot, query) {
     }
 }
 
-// ------------------ Bot Initialization & Export ------------------
+// ------------------ Exported Initialization ------------------
 export async function initTelegramBot(token) {
     const bot = await initBot(token);
 
