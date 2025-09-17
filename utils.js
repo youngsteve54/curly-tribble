@@ -2,9 +2,8 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-
-// -------------------- Config JSON Loader --------------------
 import { fileURLToPath } from "url";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -16,6 +15,13 @@ export function ensureDir(dirPath) {
     if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
     }
+}
+
+// ------------------ Ensure Data Folder ------------------
+export function ensureDataFolder() {
+    const dataPath = config.botSettings?.dataPath || path.join(__dirname, "data");
+    ensureDir(dataPath);
+    return dataPath;
 }
 
 // ------------------ Passkey Generator ------------------
@@ -40,7 +46,6 @@ export function saveMedia(userId, number, fileName, buffer) {
     return filePath;
 }
 
-// Save deleted WhatsApp message (text or media buffer)
 export function saveDeletedMessage(userId, number, content, type = "text") {
     const timestamp = Date.now();
     const ext = type === "text"
@@ -106,4 +111,4 @@ export function paginate(items, page = 1, limit = config.botSettings.paginationL
 // ------------------ Utility: Convert Base64 to Buffer ------------------
 export function bufferFromBase64(data) {
     return Buffer.from(data, "base64");
-}
+                                   }
